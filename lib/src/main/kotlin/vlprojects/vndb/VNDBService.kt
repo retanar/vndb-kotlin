@@ -5,9 +5,7 @@ import com.google.gson.reflect.TypeToken
 import io.ktor.network.selector.ActorSelectorManager
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.tls
-import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.writeStringUtf8
+import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -83,16 +81,17 @@ class VNDBService {
     }
 
     private suspend fun ByteReadChannel.readUntilDelimiter(delimiter: Byte = EOT): ByteArray {
+        awaitContent()
         val data = ArrayList<Byte>(availableForRead)
 
-        var byte: Byte = 0
-        while (byte != (-1).toByte()) {
+        var byte: Byte
+        while (true) {
             byte = this.readByte()
-            if (byte == EOT) break
+            if (byte == delimiter || byte == (-1).toByte()) break
             data.add(byte)
         }
 
-        return data.takeWhile { it != delimiter }.toByteArray()
+        return data.toByteArray()
     }
 
     /**

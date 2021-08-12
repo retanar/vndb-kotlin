@@ -2,6 +2,9 @@ package vlprojects.vndb.result
 
 import com.google.gson.annotations.SerializedName
 
+/**
+ * Information about a VN that is returned by a "basic" flag.
+ */
 data class VNBasic(
     val id: Int,
     val title: String,

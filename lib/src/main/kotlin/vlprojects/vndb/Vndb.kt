@@ -9,6 +9,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import vlprojects.vndb.parameters.Filter
 import vlprojects.vndb.parameters.Options
 import vlprojects.vndb.result.*
@@ -27,7 +28,7 @@ private const val SPACE: Byte = 0x20
  * Main class for connecting to the [vndb api](https://api.vndb.org). Before issuing any commands, this client needs to
  * establish the connection by using [connect] method and login by using [login] method (which also calls [connect]).
  */
-class VNDBService {
+open class Vndb {
     private lateinit var socket: Socket
     private lateinit var outputStream: ByteWriteChannel
     private lateinit var inputStream: ByteReadChannel
@@ -102,15 +103,17 @@ class VNDBService {
      * @return [Response] object that contains response name and json from the server.
      */
     suspend fun sendCommandWithResponse(command: String, vararg args: String): Response {
-        networkMutex.withLock {
-            sendCommand(command, *args)
-            return getResponse()
+        return networkMutex.withLock {
+            withContext(Dispatchers.IO) {
+                sendCommand(command, *args)
+                return@withContext getResponse()
+            }
         }
     }
 
     /**
      * Acts similarly to [sendCommandWithResponse] but used for "get" commands. Used in various other methods like:
-     * [getVN], [getCharacter], [getQuote].
+     * [getVisualNovel], [getCharacter], [getQuote].
      */
     suspend fun sendGetCommandWithResponse(
         type: String,
@@ -125,31 +128,33 @@ class VNDBService {
      * Sends "login" command to the vndb server without credentials. This method needs to be called before sending any
      * other commands to the server.
      *
+     * @param client unique string to identify client application. Must contain from 3 to 50 ascii characters.
+     * @param clientVersion indicates software version of the client
      * @return [Result.Success] on successful login;
      *
      * [Result.Error] on unsuccessful login or if this connection was already logged in.
      */
-    suspend fun login(): Result<Unit> {
+    suspend fun login(client: String = "vlprojects_vndb", clientVersion: String = "0.1.0"): Result<Unit> {
         connect()
-        val json = "{\"protocol\":1,\"client\":\"vlprojects7764_test\",\"clientver\":0.1}"
+        val json = "{\"protocol\":1,\"client\":\"$client\",\"clientver\":\"$clientVersion\"}"
         sendCommand("login", json)
         return getResponse().parse("ok")
     }
 
     /**
-     * @param flags used to get specific information about visual novels. For now, the only supported flag by this
-     * library is `basic`. Existing flags: basic, details, anime, relation, tags, stats, screens, staff.
+     * @param flags used to get specific information about visual novels. For now, the only supported flags by this
+     * library are `basic` and `details`. Existing flags: basic, details, anime, relation, tags, stats, screens, staff.
      * @param filter filtering is possible on these fields: id, title, original, firstchar, released, platforms,
      * languages, orig_lang, search, tags.
      * @param options sorting is possible on the following fields: id, title, released, popularity, rating, votecount.
      */
-    suspend fun getVN(
-        flags: Array<String> = arrayOf("basic"),
+    suspend fun getVisualNovel(
+        flags: Array<String> = arrayOf("basic", "details"),
         filter: Filter = Filter.DEFAULT,
         options: Options = Options()
-    ): Result<GetResults<VNBasic>> {
+    ): Result<GetResults<VisualNovel>> {
         val response = sendGetCommandWithResponse("vn", flags, filter.toString(), options.toString())
-        val results = response.parse<GetResults<VNBasic>>("results")
+        val results = response.parse<GetResults<VisualNovel>>("results")
         return results
     }
 

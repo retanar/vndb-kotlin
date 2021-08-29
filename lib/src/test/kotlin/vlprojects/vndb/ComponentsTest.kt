@@ -2,7 +2,7 @@ package vlprojects.vndb
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import vlprojects.vndb.parameters.*
@@ -13,11 +13,11 @@ class ComponentsTest {
     @Test
     fun optionsTest() {
         val o1 = Options()
-        Assertions.assertEquals(o1.toString(), "{}")
+        assertEquals(o1.toString(), "{}")
 
         val resultCount = 20
         val o2 = Options(results = resultCount)
-        Assertions.assertEquals(o2.toString(), """{"results":$resultCount}""")
+        assertEquals(o2.toString(), """{"results":$resultCount}""")
     }
 
     @Test
@@ -42,7 +42,7 @@ class ComponentsTest {
             |{"title":"Reverse Desire ~Uragaeru Yokubou~","id":4174,"languages":["ja"],"platforms":["win","dvd"],"released":"2004-02-27","orig_lang":["ja"],"original":"Reverse desire???????"}
             |],"more":true,"num":15}""".trimMargin()
         )
-        val parse = Gson().fromJson<GetResults<VNBasic>>(resp.json, object : TypeToken<GetResults<VNBasic>>() {}.type)
+        val parse = Gson().fromJson<GetResults<VisualNovel>>(resp.json, object : TypeToken<GetResults<VisualNovel>>() {}.type)
         val list = parse.items
         assertFalse(list.isNullOrEmpty())
     }
@@ -69,10 +69,19 @@ class ComponentsTest {
             |{"gender":"f","id":73598,"age":null,"bloodt":"o","image_flagging":{"votecount":12,"violence_avg":0,"sexual_avg":0},"original":"??? ??","image":"https://s2.vndb.org/ch/93/97193.jpg","spoil_gender":null,"description":"Time traveller from 2036, daughter of Hashida Itaru with a mission to reach Steins Gate.","birthday":[27,9],"aliases":"Beta Suzuha","vns":[[2002,0,2,"appears"],[11660,0,1,"appears"],[17102,0,0,"primary"]],"name":"Amane Suzuha"}],"more":true,"num":15}""".trimMargin()
         )
 
-        val parse = Gson().fromJson<GetResults<Character>>(resp.json, object : TypeToken<GetResults<Character>>() {}.type)
+        val parse =
+            Gson().fromJson<GetResults<Character>>(resp.json, object : TypeToken<GetResults<Character>>() {}.type)
         assert(parse.items.none { character ->
             character.getVNSpoilerLevel().isNullOrEmpty()
         })
     }
 
+    @Test
+    fun resultCast() {
+        val success = Result.Success(10)
+        val error = Result.Error("error")
+
+        assertEquals(success.success(), 10)
+        assertEquals(error.error(), "error")
+    }
 }

@@ -4,7 +4,7 @@ package vlprojects.vndb.parameters
  * Filter to be used with some vndb commands. For detailed syntax explanation, see
  * [vndb api](https://vndb.org/d11#2) > *Filter string syntax*.
  */
-class Filter(
+open class Filter(
     private val filter: String
 ) {
     /** Wraps filter string with braces */

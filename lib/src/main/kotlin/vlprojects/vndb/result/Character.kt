@@ -13,12 +13,6 @@ class Character(
     val image: String?,
     val vns: Array<Array<JsonElement>>,
 ) {
-    /*val vnSpoilerLevel: List<Pair<Int, Int>> by lazy {
-        vns.map { vnInfo ->
-            Pair(vnInfo[0].asInt, vnInfo[2].asInt)
-        }
-    }*/
-
     fun getVNSpoilerLevel() = vns.map { vnInfo ->
         Pair(vnInfo[0].asInt, vnInfo[2].asInt)
     }
@@ -26,17 +20,21 @@ class Character(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
+
         other as Character
-        return id == other.id
+
+        if (id != other.id) return false
+        if (name != other.name) return false
+        if (original != other.original) return false
+        if (gender != other.gender) return false
+        if (!birthday.contentEquals(other.birthday)) return false
+        if (description != other.description) return false
+        if (age != other.age) return false
+        if (image != other.image) return false
+        if (!vns.contentDeepEquals(other.vns)) return false
+
+        return true
     }
 
     override fun hashCode(): Int = id
 }
-
-/*class AnyDeserializer : JsonDeserializer<List<Any>> {
-    override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): List<Any> {
-        return json?.asJsonArray?.map { elem ->
-            elem.asString
-        } ?: listOf()
-    }
-}*/

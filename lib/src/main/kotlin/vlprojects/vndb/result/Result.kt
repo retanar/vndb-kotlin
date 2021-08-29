@@ -11,4 +11,16 @@ sealed class Result<out T> {
 
     /** Successful result that holds object [T]. */
     class Success<out T>(val data: T) : Result<T>()
+
+    fun success(): T {
+        if (this is Success)
+            return this.data
+        throw ClassCastException("Result object was not of type Success")
+    }
+
+    fun error(): String {
+        if (this is Error)
+            return this.json
+        throw ClassCastException("Result object was not of type Error")
+    }
 }

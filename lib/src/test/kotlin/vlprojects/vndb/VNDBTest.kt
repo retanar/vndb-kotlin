@@ -9,7 +9,7 @@ import vlprojects.vndb.result.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class VNDBTest {
-    private val vndb = VNDBService()
+    private val vndb = Vndb()
 
     @BeforeAll
     fun loginTest() = runBlocking {
@@ -27,17 +27,22 @@ class VNDBTest {
 
     @Test
     fun ever17Test() = runBlocking {
-        val results = vndb.getVN(filter = "id" eq 17)
-        assert(results is Result.Success<GetResults<VNBasic>>)
-        results as Result.Success<GetResults<VNBasic>>
+        val results = vndb.getVisualNovel(filter = "id" eq 17)
+        assert(results is Result.Success<GetResults<VisualNovel>>)
+        results as Result.Success<GetResults<VisualNovel>>
         val data = results.data
 
         assertEquals(data.num, 1)
         assertEquals(data.items.size, 1)
 
         val ever17 = data.items.single()
+        assert(ever17.title.startsWith("Ever17", ignoreCase = true))
         assertEquals(ever17.id, 17)
         assertEquals(ever17.origLanguage.single(), "ja")
+        assertEquals(ever17.length, 4)
+        assertNotNull(ever17.image)
+        assertNotNull(ever17.imageFlags.sexual)
+        assertNotNull(ever17.imageFlags.violence)
     }
 
     @Test

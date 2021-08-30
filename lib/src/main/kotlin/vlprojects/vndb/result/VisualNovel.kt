@@ -46,11 +46,3 @@ data class VisualNovel(
     override fun hashCode(): Int = id
 
 }
-
-data class ImageFlagging(
-    val votecount: Int = 0,
-    @SerializedName("sexual_avg")
-    val sexual: Double? = null,
-    @SerializedName("violence_avg")
-    val violence: Double? = null,
-)

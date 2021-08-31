@@ -8,29 +8,32 @@ import vlprojects.vndb.parameters.*
 import vlprojects.vndb.result.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class VNDBTest {
+class VndbTest {
     private val vndb = Vndb()
 
     @BeforeAll
     fun loginTest() = runBlocking {
         val result = vndb.login()
-        assert(result is Result.Success) { (result as Result.Error).json }
+        assert(result is Result.Success) { result.error() }
     }
 
     @Test
     fun dbstatsTest() = runBlocking {
         val result = vndb.getDBStats()
-        assert(result is Result.Success<DBStats>)
-        val stats = (result as Result.Success<DBStats>).data
+        val stats = result.success()
         assert(stats.vn > 0)
+        assert(stats.chars > 0)
+        assert(stats.producers > 0)
+        assert(stats.releases > 0)
+        assert(stats.tags > 0)
+        assert(stats.traits > 0)
     }
 
     @Test
     fun ever17Test() = runBlocking {
         val results = vndb.getVisualNovel(filter = "id" eq 17)
         assert(results is Result.Success<GetResults<VisualNovel>>)
-        results as Result.Success<GetResults<VisualNovel>>
-        val data = results.data
+        val data = results.success()
 
         assertEquals(data.num, 1)
         assertEquals(data.items.size, 1)
@@ -49,21 +52,20 @@ class VNDBTest {
     fun quoteTest() = runBlocking {
         val result = vndb.getQuote()
         assert(result is Result.Success)
-        result as Result.Success<GetResults<Quote>>
-        assert(result.data.num == 1)
-        val quote = result.data.items.single()
+        val data = result.success()
+        assert(data.num == 1)
+        val quote = data.items.single()
         assert(quote.id > 0)
         println(quote)
     }
 
     @Test
     fun parseMixedArray() = runBlocking {
-        val result = vndb.getCharacter(filter = "vn" eq 2002, options = Options(results = 4))
-        result as Result.Success
-        val items = result.data.items
+        val result = vndb.getCharacter(filter = "vn" eq 2002, options = Options(results = 15))
+        val items = result.success().items
         val item = items.first()
         assertNotNull(item.vns)
 
-        assertNotNull(item.getVNSpoilerLevel().first(), "おはよう、お兄ちゃん")
+        assertNotNull(item.getVNSpoilerLevel().first(), "Null when getting VN's spoiler level")
     }
 }

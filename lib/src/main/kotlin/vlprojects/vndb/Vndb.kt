@@ -5,13 +5,14 @@ import com.google.gson.reflect.TypeToken
 import io.ktor.network.selector.ActorSelectorManager
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.tls
-import io.ktor.utils.io.*
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import vlprojects.vndb.parameters.Filter
-import vlprojects.vndb.parameters.Options
+import vlprojects.vndb.parameters.*
 import vlprojects.vndb.result.*
 import java.net.InetSocketAddress
 
@@ -49,14 +50,14 @@ open class Vndb {
      * @return `true` if this connection was established succesfully; `false` if this connection was closed right after
      * opening.
      */
-    suspend fun connect(): Boolean {
+    suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
         if (::socket.isInitialized && !socket.isClosed)
-            return true
+            return@withContext true
         socket = aSocket(ActorSelectorManager(Dispatchers.IO)).tcp()
             .connect(InetSocketAddress(host, TLS_PORT)).tls(Dispatchers.IO)
         outputStream = socket.openWriteChannel(autoFlush = false)
         inputStream = socket.openReadChannel()
-        return !socket.isClosed
+        return@withContext !socket.isClosed
     }
 
     private suspend fun sendCommand(command: String, vararg args: String) {
@@ -77,7 +78,6 @@ open class Vndb {
 
     private suspend fun getResponse(): Response {
         val resp = inputStream.readUntilDelimiter().decodeToString().split(' ', limit = 2)
-//        println("DEBUG: $resp")
         return Response(resp[0], resp.getOrElse(1) { "" })
     }
 
@@ -104,10 +104,8 @@ open class Vndb {
      */
     suspend fun sendCommandWithResponse(command: String, vararg args: String): Response {
         return networkMutex.withLock {
-            withContext(Dispatchers.IO) {
-                sendCommand(command, *args)
-                return@withContext getResponse()
-            }
+            sendCommand(command, *args)
+            return@withLock getResponse()
         }
     }
 
@@ -137,8 +135,8 @@ open class Vndb {
     suspend fun login(client: String = "vlprojects_vndb", clientVersion: String = "0.1.0"): Result<Unit> {
         connect()
         val json = "{\"protocol\":1,\"client\":\"$client\",\"clientver\":\"$clientVersion\"}"
-        sendCommand("login", json)
-        return getResponse().parse("ok")
+        val result = sendCommandWithResponse("login", json)
+        return result.parse("ok")
     }
 
     /**
